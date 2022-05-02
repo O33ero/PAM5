@@ -1,17 +1,15 @@
 import com.mindfusion.charting.GridType;
 import com.mindfusion.charting.Series2D;
-import com.mindfusion.charting.PerSeriesStyle;
 import com.mindfusion.charting.swing.LineChart;
 import com.mindfusion.drawing.DashStyle;
 import com.mindfusion.drawing.SolidBrush;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jfree.chart.JFreeChart;
-import org.jfree.data.time.DynamicTimeSeriesCollection;
-import org.jfree.data.time.Second;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -38,7 +36,7 @@ public class MainWindow extends JFrame {
     private LineChart chart;
     private List<Double> seriesXData;
     private List<Double> seriesYData;
-    private final int cacheSize = 64;
+    private final int cacheSize = 80;
     private double time;
     private Series2D series;
 
@@ -66,6 +64,7 @@ public class MainWindow extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1000, 600);
         setTitle("PAM5 Implementation");
+        setFocusable(true);
         // Menu bar
         setJMenuBar(initMenuBar());
 
@@ -74,6 +73,32 @@ public class MainWindow extends JFrame {
 
         // Button 0 and 1
         getContentPane().add(initPanel01(), BorderLayout.SOUTH);
+
+        // key binding
+        addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                LOGGER.debug("Typed: {}", e.getKeyChar());
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int keyValue = -1;
+                LOGGER.debug("Pressed: {}", e.getKeyChar());
+                if (e.getKeyChar() == '1') {
+                    keyValue = 1;
+                } else if (e.getKeyChar() == '0' || e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    keyValue = 0;
+                }
+                LOGGER.debug("Input: {}", keyValue);
+                inputAction(keyValue);
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                LOGGER.debug("Realised: {}", e.getKeyChar());
+            }
+        });
 
         // Time tick events
         randomGenerator = RandomGeneratorFactory.of("L128X1024MixRandom").create();
@@ -215,37 +240,7 @@ public class MainWindow extends JFrame {
         JButton button = new JButton();
         button.setText(content);
         button.setSize(20, 30);
-        button.addActionListener(e -> {
-            if (lastInput == -1) {
-                lastInput = buttonValue;
-                LOGGER.debug("Last Input = {}", lastInput);
-            } else {
-
-                if (lastInput == 0) {
-                    // 01
-                    if (buttonValue == 1) {
-                        nextPoint(1);
-                    }
-                    // 00
-                    else {
-                        nextPoint(0);
-                    }
-                } else {
-                    // 11
-                    if (buttonValue == 1) {
-                        nextPoint(11);
-                    }
-                    // 10
-                    else {
-                        nextPoint(10);
-                    }
-                }
-                timer.restart();
-                LOGGER.debug("New dataset X = {}", seriesXData);
-                LOGGER.debug("New dataset Y = {}", seriesYData);
-                updateSeries();
-            }
-        });
+        button.addActionListener(e -> inputAction(buttonValue));
 
         return button;
     }
@@ -331,5 +326,34 @@ public class MainWindow extends JFrame {
         chart.repaint();
     }
 
-
+    private void inputAction(int inputValue) {
+        if (lastInput == -1) {
+            lastInput = inputValue;
+            LOGGER.debug("Last Input = {}", lastInput);
+        } else {
+            if (lastInput == 0) {
+                // 01
+                if (inputValue == 1) {
+                    nextPoint(1);
+                }
+                // 00
+                else {
+                    nextPoint(0);
+                }
+            } else {
+                // 11
+                if (inputValue == 1) {
+                    nextPoint(11);
+                }
+                // 10
+                else {
+                    nextPoint(10);
+                }
+            }
+            timer.restart();
+            LOGGER.debug("New dataset X = {}", seriesXData);
+            LOGGER.debug("New dataset Y = {}", seriesYData);
+            updateSeries();
+        }
+    }
 }
