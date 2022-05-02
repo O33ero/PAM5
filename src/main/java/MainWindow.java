@@ -24,6 +24,7 @@ public class MainWindow extends JFrame {
     // timer
     Timer timer;
     boolean enableTimeEvent;
+    int millsTimer = 1000 / 2;
     // random generator
     RandomGenerator randomGenerator;
     boolean enableRandomEvent;
@@ -34,7 +35,7 @@ public class MainWindow extends JFrame {
 
     // Chart drawing
     private LineChart chart;
-    private final int cacheSize = 80;
+    private final int cacheSize = 512;
     private double time;
     private List<Double> mainSeriesXData;
     private List<Double> mainSeriesYData;
@@ -89,12 +90,12 @@ public class MainWindow extends JFrame {
                 int keyValue = -1;
                 LOGGER.debug("Pressed: {}", e.getKeyChar());
                 if (e.getKeyChar() == '1') {
-                    keyValue = 1;
+                    inputAction(1);
+                    LOGGER.debug("Input: 1");
                 } else if (e.getKeyChar() == '0' || e.getKeyCode() == KeyEvent.VK_SPACE) {
-                    keyValue = 0;
+                    inputAction(0);
+                    LOGGER.debug("Input: 0");
                 }
-                LOGGER.debug("Input: {}", keyValue);
-                inputAction(keyValue);
             }
 
             @Override
@@ -103,13 +104,14 @@ public class MainWindow extends JFrame {
         });
 
         // Time tick events
-        randomGenerator = RandomGeneratorFactory.of("L128X1024MixRandom").create();
-        timer = new Timer(1000, e -> {
+        randomGenerator = RandomGeneratorFactory.of("Xoroshiro128PlusPlus").create();
+        timer = new Timer(millsTimer, e -> {
             int value = -1;
             if (enableTimeEvent) {
                 if (enableRandomEvent) {
                     value = randomGenerator.nextInt(0, 2);
                     value = value * 10 + randomGenerator.nextInt(0, 2);
+                    value = randomGenerator.nextInt(0, 20) == 1 ? -1 : value;
                 }
                 LOGGER.info("Generated next value: {}", value);
                 nextPoint(value);
@@ -136,16 +138,16 @@ public class MainWindow extends JFrame {
         chart.getXAxis().setTitle("T, сек");
 
         // Grid
-        chart.setGridType(GridType.Crossed);
+        chart.setGridType(GridType.Vertical);
         chart.getTheme().setGridLineStyle(DashStyle.Dash);
-        chart.getTheme().setGridLineColor(new Color(192, 192, 192));
+        chart.getTheme().setGridLineColor(new Color(186, 186, 186));
 
-        // Colors
+        // Series
         chart.getTheme().setHighlightStroke(new SolidBrush(new Color(255, 147, 66)));
         chart.getTheme().setCommonSeriesStrokes(
                 Arrays.asList(
                         new SolidBrush(new Color(206, 0, 0)),
-                        new SolidBrush(new Color(0, 106, 0))
+                        new SolidBrush(new Color(255, 255, 255))
                 )
         );
         chart.getTheme().setCommonSeriesFills(
@@ -155,10 +157,14 @@ public class MainWindow extends JFrame {
                 )
         );
         chart.getTheme().setCommonSeriesStrokeThicknesses(
-                Arrays.asList(3.0)
+                Arrays.asList(5.0, 0.0)
         );
+        chart.getTheme().setCommonSeriesStrokeDashStyles(
+                Arrays.asList(DashStyle.Solid, DashStyle.Solid)
+        );
+        chart.getTheme().setDataLabelsFontSize(20);
 
-
+        chart.setShowLegend(false);
         // Series
         try {
             mainSeriesYData = generateSeries(cacheSize, 0.0);
@@ -172,7 +178,7 @@ public class MainWindow extends JFrame {
             mainSeries = new Series2D(
                     mainSeriesXData,
                     mainSeriesYData,
-                    generateNames(cacheSize));
+                    new LinkedList<>(Collections.nCopies(cacheSize, " ")));
             mainSeries.setTitle("PAM5");
 
             decodedSeriesNames = new LinkedList<>(Collections.nCopies(cacheSize, " "));
@@ -278,7 +284,7 @@ public class MainWindow extends JFrame {
             LOGGER.debug("New chart update to 00 (-2)");
 
             decodedSeriesXData.add(time - 0.5);
-            decodedSeriesNames.add("00");
+            decodedSeriesNames.add("0  0");
             return;
         }
         // 01
@@ -291,7 +297,7 @@ public class MainWindow extends JFrame {
             LOGGER.debug("New chart update to 01 (-1)");
 
             decodedSeriesXData.add(time - 0.5);
-            decodedSeriesNames.add("01");
+            decodedSeriesNames.add("0  1");
             return;
         }
         // 10
@@ -304,7 +310,7 @@ public class MainWindow extends JFrame {
             LOGGER.debug("New chart update to 10 (1)");
 
             decodedSeriesXData.add(time - 0.5);
-            decodedSeriesNames.add("10");
+            decodedSeriesNames.add("1  0");
             return;
         }
         // 11
@@ -317,7 +323,7 @@ public class MainWindow extends JFrame {
             LOGGER.debug("New chart update to 11 (2)");
 
             decodedSeriesXData.add(time - 0.5);
-            decodedSeriesNames.add("11");
+            decodedSeriesNames.add("1  1");
             return;
         }
         // base value
