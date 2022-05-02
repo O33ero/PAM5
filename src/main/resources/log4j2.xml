@@ -1,0 +1,12 @@
+<Configuration name="ConfigProd" level="DEBUG">
+  <Appenders>
+	  <Console name="Console" target="SYSTEM_OUT">
+		  <PatternLayout pattern="%d{HH:mm:ss dd.MM.yyyy} [%C, %M:%L] %p - %m\n"/>
+	  </Console>
+  </Appenders>
+  <Loggers>
+    <Root level="DEBUG">
+      <AppenderRef ref="Console" level="DEBUG"/>
+    </Root>
+  </Loggers>
+</Configuration>
