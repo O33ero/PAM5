@@ -34,15 +34,19 @@ public class MainWindow extends JFrame {
 
     // Chart drawing
     private LineChart chart;
-    private List<Double> seriesXData;
-    private List<Double> seriesYData;
     private final int cacheSize = 80;
     private double time;
-    private Series2D series;
+    private List<Double> mainSeriesXData;
+    private List<Double> mainSeriesYData;
+    private List<Double> decodedSeriesXData;
+    private List<Double> decodedSeriesYData;
+    private List<String> decodedSeriesNames;
+    private Series2D mainSeries;
+    private Series2D decodedSeries;
 
     // Chart layout
     private final double yMaxValue = 3.0;
-    private final double yMinValue = -3.0;
+    private final double yMinValue = -3.5;
     private final double xMaxValue = 20.0; // may be changed
     private final double xMinValue = 0.0; // may be changed
 
@@ -78,7 +82,6 @@ public class MainWindow extends JFrame {
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
-                LOGGER.debug("Typed: {}", e.getKeyChar());
             }
 
             @Override
@@ -96,7 +99,6 @@ public class MainWindow extends JFrame {
 
             @Override
             public void keyReleased(KeyEvent e) {
-                LOGGER.debug("Realised: {}", e.getKeyChar());
             }
         });
 
@@ -124,7 +126,7 @@ public class MainWindow extends JFrame {
         chart.getYAxis().setMaxValue(yMaxValue);
         chart.getYAxis().setMinValue(yMinValue);
         chart.getYAxis().setOrigin(0.0);
-        chart.getYAxis().setInterval(0.333);
+        chart.getYAxis().setInterval(1.0);
         chart.getYAxis().setTitle("V, В");
 
         chart.getXAxis().setMaxValue(xMaxValue);
@@ -134,7 +136,7 @@ public class MainWindow extends JFrame {
         chart.getXAxis().setTitle("T, сек");
 
         // Grid
-        chart.setGridType(GridType.Horizontal);
+        chart.setGridType(GridType.Crossed);
         chart.getTheme().setGridLineStyle(DashStyle.Dash);
         chart.getTheme().setGridLineColor(new Color(192, 192, 192));
 
@@ -142,12 +144,14 @@ public class MainWindow extends JFrame {
         chart.getTheme().setHighlightStroke(new SolidBrush(new Color(255, 147, 66)));
         chart.getTheme().setCommonSeriesStrokes(
                 Arrays.asList(
-                        new SolidBrush(new Color(206, 0, 0))
+                        new SolidBrush(new Color(206, 0, 0)),
+                        new SolidBrush(new Color(0, 106, 0))
                 )
         );
         chart.getTheme().setCommonSeriesFills(
                 Arrays.asList(
-                        new SolidBrush(new Color(206, 0, 0))
+                        new SolidBrush(new Color(206, 0, 0)),
+                        new SolidBrush(new Color(0, 106, 0))
                 )
         );
         chart.getTheme().setCommonSeriesStrokeThicknesses(
@@ -157,21 +161,32 @@ public class MainWindow extends JFrame {
 
         // Series
         try {
-            seriesYData = generateSeries(cacheSize);
-            seriesXData = generateSeries(cacheSize);
-            LOGGER.debug("Dataset X = {}", seriesXData);
-            LOGGER.debug("Dataset Y = {}", seriesYData);
+            mainSeriesYData = generateSeries(cacheSize, 0.0);
+            mainSeriesXData = generateSeries(cacheSize, 0.0);
+            decodedSeriesXData = generateSeries(cacheSize, 0.0);
+            decodedSeriesYData = generateSeries(cacheSize, -3.0);
 
-            series = new Series2D(
-                    seriesXData,
-                    seriesYData,
+            LOGGER.debug("Dataset X = {}", mainSeriesXData);
+            LOGGER.debug("Dataset Y = {}", mainSeriesYData);
+
+            mainSeries = new Series2D(
+                    mainSeriesXData,
+                    mainSeriesYData,
                     generateNames(cacheSize));
-            series.setTitle("PAM5");
+            mainSeries.setTitle("PAM5");
 
+            decodedSeriesNames = new LinkedList<>(Collections.nCopies(cacheSize, " "));
+            decodedSeries = new Series2D(
+                    decodedSeriesXData,
+                    decodedSeriesYData,
+                    decodedSeriesNames
+            );
+            decodedSeries.setTitle("Decoded PAM5");
 
             time = 0;
 
-            chart.getSeries().add(series);
+            chart.getSeries().add(mainSeries);
+            chart.getSeries().add(decodedSeries);
         } catch (Exception ex) {
             LOGGER.error("Something wend wrong: {}", ex.getMessage(), ex);
             System.exit(1);
@@ -182,8 +197,8 @@ public class MainWindow extends JFrame {
     }
 
 
-    private List<Double> generateSeries(int size) {
-        return new LinkedList<>(Collections.nCopies(size, 0.0));
+    private List<Double> generateSeries(int size, double startValue) {
+        return new LinkedList<>(Collections.nCopies(size, startValue));
     }
 
     private List<String> generateNames(int size) {
@@ -246,79 +261,88 @@ public class MainWindow extends JFrame {
     }
 
     private void nextPoint(int b) {
+        mainSeriesXData.remove(0);
+        mainSeriesYData.remove(0);
+        mainSeriesXData.remove(0);
+        mainSeriesYData.remove(0);
+        decodedSeriesXData.remove(0);
+        decodedSeriesNames.remove(0);
+
         // 00
         if (b == 0) {
-            seriesXData.add(time);
-            seriesYData.add(-2.0);
-
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(-2.0);
             time += 1.0;
-
-            seriesXData.add(time);
-            seriesYData.add(-2.0);
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(-2.0);
             LOGGER.debug("New chart update to 00 (-2)");
+
+            decodedSeriesXData.add(time - 0.5);
+            decodedSeriesNames.add("00");
             return;
         }
         // 01
         if (b == 1) {
-            seriesXData.add(time);
-            seriesYData.add(-1.0);
-
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(-1.0);
             time += 1.0;
-
-            seriesXData.add(time);
-            seriesYData.add(-1.0);
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(-1.0);
             LOGGER.debug("New chart update to 01 (-1)");
+
+            decodedSeriesXData.add(time - 0.5);
+            decodedSeriesNames.add("01");
             return;
         }
         // 10
         if (b == 10) {
-            seriesXData.add(time);
-            seriesYData.add(1.0);
-
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(1.0);
             time += 1.0;
-
-            seriesXData.add(time);
-            seriesYData.add(1.0);
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(1.0);
             LOGGER.debug("New chart update to 10 (1)");
+
+            decodedSeriesXData.add(time - 0.5);
+            decodedSeriesNames.add("10");
             return;
         }
         // 11
         if (b == 11) {
-            seriesXData.add(time);
-            seriesYData.add(2.0);
-
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(2.0);
             time += 1.0;
-
-            seriesXData.add(time);
-            seriesYData.add(2.0);
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(2.0);
             LOGGER.debug("New chart update to 11 (2)");
+
+            decodedSeriesXData.add(time - 0.5);
+            decodedSeriesNames.add("11");
             return;
         }
+        // base value
         if (b == -1) {
-            seriesXData.add(time);
-            seriesYData.add(0.0);
-
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(0.0);
             time += 1;
-            seriesXData.add(time);
-            seriesYData.add(0.0);
+            mainSeriesXData.add(time);
+            mainSeriesYData.add(0.0);
+
+            decodedSeriesXData.add(time - 0.5);
+            decodedSeriesNames.add(" ");
             LOGGER.debug("New chart update to -1 (0)");
         }
     }
 
 
     private void updateSeries() {
-        seriesXData.remove(0);
-        seriesYData.remove(0);
-        seriesXData.remove(0);
-        seriesYData.remove(0);
-
         lastInput = -1;
-        chart.getSeries().remove(0);
-        series.setXData(seriesXData);
-        series.setYData(seriesYData);
-        chart.getSeries().add(series);
 
-        double maxXValue = seriesXData.get(cacheSize - 1);
+//        mainSeries.setXData(mainSeriesXData);
+//        mainSeries.setYData(mainSeriesYData);
+//        chart.getSeries().add(mainSeries);
+
+        double maxXValue = mainSeriesXData.get(cacheSize - 1);
         if (maxXValue > chart.getXAxis().getMaxValue() - 2.0) {
             chart.getXAxis().setMaxValue(maxXValue + 2.0);
             chart.getXAxis().setMinValue(maxXValue - 18.0);
@@ -351,8 +375,8 @@ public class MainWindow extends JFrame {
                 }
             }
             timer.restart();
-            LOGGER.debug("New dataset X = {}", seriesXData);
-            LOGGER.debug("New dataset Y = {}", seriesYData);
+            LOGGER.debug("New dataset X = {}", mainSeriesXData);
+            LOGGER.debug("New dataset Y = {}", mainSeriesYData);
             updateSeries();
         }
     }
