@@ -13,22 +13,22 @@ public class MainWindow extends JFrame {
     private static final Logger LOGGER = LogManager.getLogger(MainWindow.class);
 
     // Functional
-        // timer
+    // timer
     private final Timer timer;
     private boolean enableTimeEvent;
     private final int millsTimer = 1000 / 2;
-        // random generator
+    // random generator
     private final transient RandomGenerator randomGenerator;
     private boolean enableRandomEvent;
 
     // Components
     private JPanel jButtonPanel01;
     private JMenuBar jMenuBar;
-    private PAM5Chart chart;
+    private AMIChart chart;
 
     // Input functional
     private int lastInput = -1; // if == -1 -> no input
-                                // if == 1 or 0 -> rerender chart
+    // if == 1 or 0 -> rerender chart
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -44,7 +44,7 @@ public class MainWindow extends JFrame {
         // Main init
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1000, 600);
-        setTitle("PAM5 Implementation");
+        setTitle("AMI Implementation");
         setFocusable(true);
         // Menu bar
         setJMenuBar(initMenuBar());
@@ -84,12 +84,10 @@ public class MainWindow extends JFrame {
         // Time tick events
         randomGenerator = RandomGeneratorFactory.of("Xoroshiro128PlusPlus").create();
         timer = new Timer(millsTimer, e -> {
-            int value = -1;
+            int value = 0;
             if (enableTimeEvent) {
                 if (enableRandomEvent) {
                     value = randomGenerator.nextInt(0, 2);
-                    value = value * 10 + randomGenerator.nextInt(0, 2);
-                    value = randomGenerator.nextInt(0, 20) == 1 ? -1 : value;
                 }
                 LOGGER.info("Generated next value: {}", value);
                 chart.nextPoint(value);
@@ -99,7 +97,7 @@ public class MainWindow extends JFrame {
     }
 
     private LineChart initChart() {
-        chart = new PAM5Chart();
+        chart = new AMIChart();
         try {
             chart.initSeries();
         } catch (Exception ex) {
@@ -162,34 +160,13 @@ public class MainWindow extends JFrame {
     }
 
     private void inputAction(int inputValue) {
-        if (lastInput == -1) {
-            lastInput = inputValue;
-            LOGGER.debug("Last Input = {}", lastInput);
-        } else {
-            if (lastInput == 0) {
-                // 01
-                if (inputValue == 1) {
-                    chart.nextPoint(1);
-                }
-                // 00
-                else {
-                    chart.nextPoint(0);
-                }
-            } else {
-                // 11
-                if (inputValue == 1) {
-                    chart.nextPoint(11);
-                }
-                // 10
-                else {
-                    chart.nextPoint(10);
-                }
-            }
-            timer.restart();
-            LOGGER.debug("New dataset X = {}", chart.getMainSeriesXData());
-            LOGGER.debug("New dataset Y = {}", chart.getMainSeriesYData());
-            chart.updateSeries();
-            lastInput = -1;
-        }
+        // 0 or 1
+        chart.nextPoint(inputValue);
+
+        timer.restart();
+        LOGGER.debug("New dataset X = {}", chart.getMainSeriesXData());
+        LOGGER.debug("New dataset Y = {}", chart.getMainSeriesYData());
+        chart.updateSeries();
+        lastInput = -1;
     }
 }

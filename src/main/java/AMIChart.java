@@ -12,9 +12,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public class PAM5Chart extends LineChart {
-    private static final Logger LOGGER = LogManager.getLogger(PAM5Chart.class);
-    private static final String NAME = "PAM5";
+public class AMIChart extends LineChart {
+    private static final Logger LOGGER = LogManager.getLogger(AMIChart.class);
+    private static final String NAME = "AMI";
 
     private final int cacheSize = 512;
     private double time;
@@ -31,7 +31,10 @@ public class PAM5Chart extends LineChart {
     private final double xMaxValue = 20.0; // may be changed
     private final double xMinValue = 0.0; // may be changed
 
-    PAM5Chart() {
+    private int lastPulse = -1;   // if -1: next pulse is up
+    // if 1: next pulse is down
+
+    AMIChart() {
         setName(NAME);
 
         // Axis
@@ -87,7 +90,7 @@ public class PAM5Chart extends LineChart {
                 mainSeriesXData,
                 mainSeriesYData,
                 new LinkedList<>(Collections.nCopies(cacheSize, " ")));
-        mainSeries.setTitle("PAM5");
+        mainSeries.setTitle("AMI");
 
         decodedSeriesNames = new LinkedList<>(Collections.nCopies(cacheSize, " "));
         decodedSeries = new Series2D(
@@ -95,7 +98,7 @@ public class PAM5Chart extends LineChart {
                 decodedSeriesYData,
                 decodedSeriesNames
         );
-        decodedSeries.setTitle("Decoded PAM5");
+        decodedSeries.setTitle("Decoded AMI");
 
         time = 0;
         getSeries().add(mainSeries);
@@ -115,68 +118,62 @@ public class PAM5Chart extends LineChart {
     }
 
     public void nextPoint(int b) {
-        mainSeriesXData.remove(0);
-        mainSeriesYData.remove(0);
-        mainSeriesXData.remove(0);
-        mainSeriesYData.remove(0);
-        decodedSeriesXData.remove(0);
-        decodedSeriesNames.remove(0);
+
 
         switch (b) {
             case 0 -> {
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(-2.0);
+                // Remove 1 point of main series
+                // and 1 point of names series
+                mainSeriesXData.remove(0);
+                mainSeriesYData.remove(0);
+                decodedSeriesXData.remove(0);
+                decodedSeriesNames.remove(0);
+
                 time += 1.0;
                 mainSeriesXData.add(time);
-                mainSeriesYData.add(-2.0);
-                LOGGER.debug("New chart update to 00 (-2)");
+                mainSeriesYData.add(0.0);
 
+                LOGGER.debug("New chart update to 0");
                 decodedSeriesXData.add(time - 0.5);
-                decodedSeriesNames.add("0  0");
+                decodedSeriesNames.add("0");
             }
             case 1 -> {
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(-1.0);
-                time += 1.0;
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(-1.0);
-                LOGGER.debug("New chart update to 01 (-1)");
+                // Remove 3 point of main series
+                // and 1 point of names series
+                mainSeriesXData.remove(0);
+                mainSeriesYData.remove(0);
+                mainSeriesXData.remove(0);
+                mainSeriesYData.remove(0);
+                mainSeriesXData.remove(0);
+                mainSeriesYData.remove(0);
+
+                decodedSeriesXData.remove(0);
+                decodedSeriesNames.remove(0);
+
+                if (lastPulse == -1) { // pulse up
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(1.0);
+                    time += 1.0;
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(1.0);
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(0.0);
+                    lastPulse = 1;
+                } else { // pulse down
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(-1.0);
+                    time += 1.0;
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(-1.0);
+                    mainSeriesXData.add(time);
+                    mainSeriesYData.add(0.0);
+                    lastPulse = -1;
+                }
+
+                LOGGER.debug("New chart update to 1");
 
                 decodedSeriesXData.add(time - 0.5);
-                decodedSeriesNames.add("0  1");
-            }
-            case 10 -> {
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(1.0);
-                time += 1.0;
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(1.0);
-                LOGGER.debug("New chart update to 10 (1)");
-
-                decodedSeriesXData.add(time - 0.5);
-                decodedSeriesNames.add("1  0");
-            }
-            case 11 -> {
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(2.0);
-                time += 1.0;
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(2.0);
-                LOGGER.debug("New chart update to 11 (2)");
-
-                decodedSeriesXData.add(time - 0.5);
-                decodedSeriesNames.add("1  1");
-            }
-            case -1 -> {
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(0.0);
-                time += 1;
-                mainSeriesXData.add(time);
-                mainSeriesYData.add(0.0);
-
-                decodedSeriesXData.add(time - 0.5);
-                decodedSeriesNames.add(" ");
-                LOGGER.debug("New chart update to -1 (0)");
+                decodedSeriesNames.add("1");
             }
             default -> {
                 LOGGER.error("Incorrect input value: {}", b);
