@@ -43,7 +43,7 @@ public class MainWindow extends JFrame {
     protected MainWindow() {
         // Main init
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(1000, 600);
+        setSize(1000, 700);
         setTitle("PAM5 Implementation");
         setFocusable(true);
         // Menu bar
