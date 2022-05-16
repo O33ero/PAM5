@@ -69,9 +69,12 @@ public class MainWindow extends JFrame {
                 if (e.getKeyChar() == '1') {
                     inputAction(1);
                     LOGGER.debug("Input: 1");
-                } else if (e.getKeyChar() == '0' || e.getKeyCode() == KeyEvent.VK_SPACE) {
+                } else if (e.getKeyChar() == '0') {
                     inputAction(0);
                     LOGGER.debug("Input: 0");
+                } else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    inputAction(-1);
+                    LOGGER.debug("Input: Space");
                 }
             }
 
@@ -162,6 +165,15 @@ public class MainWindow extends JFrame {
     }
 
     private void inputAction(int inputValue) {
+        if (inputValue == -1) {
+            lastInput = -1;
+            chart.nextPoint(-1);
+            timer.restart();
+            LOGGER.debug("New dataset X = {}", chart.getMainSeriesXData());
+            LOGGER.debug("New dataset Y = {}", chart.getMainSeriesYData());
+            chart.updateSeries();
+            lastInput = -1;
+        }
         if (lastInput == -1) {
             lastInput = inputValue;
             LOGGER.debug("Last Input = {}", lastInput);
